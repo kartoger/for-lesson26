@@ -8,11 +8,17 @@ pipeline {
         stage('Detect Changes') {
             steps {
                 script {
+                    def previousCommit = env.GIT_PREVIOUS_SUCCESSFUL_COMMIT ?: "HEAD~1"
+                    echo "Comparing commits: ${previousCommit} -> ${env.GIT_COMMIT}"
                     CHANGED_FILES = sh(
-                        script: "git fetch origin ${env.BRANCH_NAME} && git diff --name-only origin/${env.BRANCH_NAME} HEAD",
+                        script: """
+                            git diff --name-only ${previousCommit} ${env.GIT_COMMIT} || true
+                        """,
                         returnStdout: true
                     ).trim()
-                    echo "Changed files:\n${CHANGED_FILES}"
+
+                    echo "Changed files raw:\n${CHANGED_FILES}"
+                    CHANGED_FILES.readLines().each { echo "Changed: $it" }
                 }
             }
         }
@@ -20,19 +26,31 @@ pipeline {
         stage('Build & Test') {
             parallel {
                 stage('HelloWorld') {
-                    when { expression { CHANGED_FILES.readLines().any { it.startsWith('simple-java-maven-app/') } } }
+                    when {
+                        expression { 
+                            return CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app/') } 
+                        }
+                    }
                     steps {
                         dir('simple-java-maven-app') { sh 'mvn clean package' }
                     }
                 }
                 stage('HelloJenkins') {
-                    when { expression { CHANGED_FILES.readLines().any { it.startsWith('simple-java-maven-app-Jenkins/') } } }
+                    when {
+                        expression { 
+                            return CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Jenkins/') } 
+                        }
+                    }
                     steps {
                         dir('simple-java-maven-app-Jenkins') { sh 'mvn clean package' }
                     }
                 }
                 stage('HelloDevops') {
-                    when { expression { CHANGED_FILES.readLines().any { it.startsWith('simple-java-maven-app-Devops/') } } }
+                    when {
+                        expression { 
+                            return CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Devops/') } 
+                        }
+                    }
                     steps {
                         dir('simple-java-maven-app-Devops') { sh 'mvn clean package' }
                     }
