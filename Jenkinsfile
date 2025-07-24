@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        maven 'M3'
+    }
     environment {
         CHANGED_FILES = ""
     }
@@ -9,16 +12,8 @@ pipeline {
             steps {
                 script {
                     def previousCommit = env.GIT_PREVIOUS_SUCCESSFUL_COMMIT ?: "HEAD~1"
-                    echo "Comparing commits: ${previousCommit} -> ${env.GIT_COMMIT}"
-                    CHANGED_FILES = sh(
-                        script: """
-                            git diff --name-only ${previousCommit} ${env.GIT_COMMIT} || true
-                        """,
-                        returnStdout: true
-                    ).trim()
-
+                    CHANGED_FILES = sh(script: "git diff --name-only ${previousCommit} ${env.GIT_COMMIT} || true", returnStdout: true).trim()
                     echo "Changed files raw:\n${CHANGED_FILES}"
-                    CHANGED_FILES.readLines().each { echo "Changed: $it" }
                 }
             }
         }
@@ -26,34 +21,54 @@ pipeline {
         stage('Build & Test') {
             parallel {
                 stage('HelloWorld') {
-                    when {
-                        expression { 
-                            return CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app/') } 
-                        }
-                    }
+                    when { expression { CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app/') } } }
                     steps {
-                        dir('simple-java-maven-app') { sh 'mvn clean package' }
+                        dir('simple-java-maven-app') {
+                            sh 'mvn clean verify'
+                        }
                     }
                 }
                 stage('HelloJenkins') {
-                    when {
-                        expression { 
-                            return CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Jenkins/') } 
-                        }
-                    }
+                    when { expression { CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Jenkins/') } } }
                     steps {
-                        dir('simple-java-maven-app-Jenkins') { sh 'mvn clean package' }
+                        dir('simple-java-maven-app-Jenkins') {
+                            sh 'mvn clean verify'
+                        }
                     }
                 }
                 stage('HelloDevops') {
-                    when {
-                        expression { 
-                            return CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Devops/') } 
+                    when { expression { CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Devops/') } } }
+                    steps {
+                        dir('simple-java-maven-app-Devops') {
+                            sh 'mvn clean verify'
                         }
                     }
-                    steps {
-                        dir('simple-java-maven-app-Devops') { sh 'mvn clean package' }
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    script {
+                        if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app/') }) {
+                            sh 'mvn sonar:sonar -f simple-java-maven-app/pom.xml -Dsonar.projectKey=HelloWorld'
+                        }
+                        if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Jenkins/') }) {
+                            sh 'mvn sonar:sonar -f simple-java-maven-app-Jenkins/pom.xml -Dsonar.projectKey=HelloJenkins'
+                        }
+                        if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Devops/') }) {
+                            sh 'mvn sonar:sonar -f simple-java-maven-app-Devops/pom.xml -Dsonar.projectKey=HelloDevops'
+                        }
                     }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
