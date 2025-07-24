@@ -36,12 +36,15 @@ pipeline {
         }
 
         stage('Quality Gate') {
-            steps {
-                timeout(time: 3, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
+          steps {
+            script {
+              sleep 5
+              timeout(time: 10, unit: 'MINUTES') {
+                waitForQualityGate abortPipeline: true
             }
         }
+    }
+}
         stage('Build & Test') {
             parallel {
                 stage('HelloWorld') {
