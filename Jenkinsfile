@@ -22,13 +22,13 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     script {
                         if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app/') }) {
-                            sh 'mvn sonar:sonar -f simple-java-maven-app/pom.xml -Dsonar.projectKey=HelloWorld'
+                            sh 'mvn sonar:sonar -f simple-java-maven-app/pom.xml -Dsonar.projectKey=HelloWorld -Dsonar.host.url=$SONAR_HOST_URL'
                         }
                         if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Jenkins/') }) {
-                            sh 'mvn sonar:sonar -f simple-java-maven-app-Jenkins/pom.xml -Dsonar.projectKey=HelloJenkins'
+                            sh 'mvn sonar:sonar -f simple-java-maven-app-Jenkins/pom.xml -Dsonar.projectKey=HelloJenkins -Dsonar.host.url=$SONAR_HOST_URL'
                         }
                         if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Devops/') }) {
-                            sh 'mvn sonar:sonar -f simple-java-maven-app-Devops/pom.xml -Dsonar.projectKey=HelloDevops'
+                            sh 'mvn sonar:sonar -f simple-java-maven-app-Devops/pom.xml -Dsonar.projectKey=HelloDevops -Dsonar.host.url=$SONAR_HOST_URL'
                         }
                     }
                 }
