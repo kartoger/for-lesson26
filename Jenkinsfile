@@ -17,7 +17,31 @@ pipeline {
                 }
             }
         }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    script {
+                        if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app/') }) {
+                            sh 'mvn sonar:sonar -f simple-java-maven-app/pom.xml -Dsonar.projectKey=HelloWorld'
+                        }
+                        if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Jenkins/') }) {
+                            sh 'mvn sonar:sonar -f simple-java-maven-app-Jenkins/pom.xml -Dsonar.projectKey=HelloJenkins'
+                        }
+                        if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Devops/') }) {
+                            sh 'mvn sonar:sonar -f simple-java-maven-app-Devops/pom.xml -Dsonar.projectKey=HelloDevops'
+                        }
+                    }
+                }
+            }
+        }
 
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
         stage('Build & Test') {
             parallel {
                 stage('HelloWorld') {
@@ -47,31 +71,7 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    script {
-                        if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app/') }) {
-                            sh 'mvn sonar:sonar -f simple-java-maven-app/pom.xml -Dsonar.projectKey=HelloWorld'
-                        }
-                        if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Jenkins/') }) {
-                            sh 'mvn sonar:sonar -f simple-java-maven-app-Jenkins/pom.xml -Dsonar.projectKey=HelloJenkins'
-                        }
-                        if (CHANGED_FILES.tokenize('\n').any { it.startsWith('simple-java-maven-app-Devops/') }) {
-                            sh 'mvn sonar:sonar -f simple-java-maven-app-Devops/pom.xml -Dsonar.projectKey=HelloDevops'
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
+        
 
         stage('Deploy') {
             steps {
