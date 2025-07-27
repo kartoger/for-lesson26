@@ -18,8 +18,8 @@ jobs:
       matrix:
         app:
           - simple-java-maven-app
-          - simple-java-maven-app-Devops
-          - simple-java-maven-app-Jenkins
+          - simple-java-maven-app-devops
+          - simple-java-maven-app-jenkins
 # сделали checkout
     steps:
       - name: Checkout repository
