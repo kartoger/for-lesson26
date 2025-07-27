@@ -48,6 +48,13 @@ jobs:
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.app }}:latest
           docker build -t $IMAGE_NAME ${{ matrix.app }}
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
-# отправили в ghcr
+#залогинились в ghcr 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+# отправили артефакт в ghcr
       - name: Push Docker image
         run: docker push $IMAGE_NAME
