@@ -1,0 +1,38 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        app:
+          - simple-java-maven-app
+          - simple-java-maven-app-Devops
+          - simple-java-maven-app-Jenkins
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build and test
+        run: mvn -B -f ${{ matrix.app }}/pom.xml clean verify
+
+      - name: Upload artifact (jar)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-jar
+          path: ${{ matrix.app }}/target/*.jar
